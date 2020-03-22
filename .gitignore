@@ -1,0 +1,7 @@
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+environment.RData
+ml-10M100K/movies.dat
+ml-10M100K/ratings.dat
