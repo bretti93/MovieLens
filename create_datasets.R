@@ -24,3 +24,4 @@ test_sub_set <- sub[test_sub_index,]
 test_sub_set <- test_sub_set %>%
   semi_join(train_sub_set, by = "movieId") %>%
   semi_join(train_sub_set, by = "userId")
+
