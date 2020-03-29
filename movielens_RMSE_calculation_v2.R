@@ -71,6 +71,10 @@ edx$title<-paste0(substr(edx$title,1,nchar(as.character(edx$title))-6))
 validation$year<-substr(validation$title,nchar(as.character(validation$title))-4,nchar(as.character(validation$title))-1)
 validation$title<-paste0(substr(validation$title,1,nchar(as.character(validation$title))-6))
 
+# Adding a unique identifier for each rating
+edx <- edx %>% mutate(ratingId = row_number())
+validation <- validation %>% mutate(ratingId = row_number())
+
 # Free memory - large datasets take it's toll
 gc()
 
@@ -91,6 +95,12 @@ test_set <- test_set %>%
 RMSE <- function(true_ratings, predicted_ratings){
   sqrt(mean((true_ratings - predicted_ratings)^2))
 }
+
+# Seperating the genres
+edx_split <- edx %>% separate_rows(genres, sep = "\\|")
+train_set_split <- train_set %>% separate_rows(genres, sep = "\\|")
+test_set_split <- test_set %>% separate_rows(genres, sep = "\\|")
+
 
 ###  Using the training and the test set for the optimization of the regularization of our 3 variable prediction model ###
 # Vector for the tuning parameters
@@ -120,16 +130,24 @@ rmses <- sapply(lambdas, function(l){
     group_by(year) %>%
     summarize(b_y = sum(rating - mu - b_i - b_u)/(n()+l))
   
-  # Predict the rating for the test set
-  predicted_ratings <- test_set %>%
+  b_g <- train_set_split %>%
     left_join(b_i, by = "movieId") %>%
     left_join(b_u, by = "userId") %>%
     left_join(b_y, by = "year") %>%
-    mutate(pred = mu + b_i + b_u + b_y) %>%
-    pull(pred)
+    group_by(genres) %>%
+    summarize(b_g = sum(rating - mu - b_i - b_u - b_y)/(n()+l))
   
-  # Return the RMSE between prediction and real rating
-  return(RMSE(predicted_ratings, test_set$rating))
+  # Predict the rating for the test set
+  predicted_ratings <- test_set_split %>%
+    left_join(b_i, by = "movieId") %>%
+    left_join(b_u, by = "userId") %>%
+    left_join(b_y, by = "year") %>%
+    left_join(b_g, by = "genres") %>%
+    mutate(pred = mu + b_i + b_u + b_y + b_g) 
+  
+  predicted_ratings <- predicted_ratings %>% group_by(ratingId) %>% summarize(pred = mean(pred))
+  
+  RMSE(predicted_ratings$pred, test_set$rating)
 })
 
 # Choosing the lambda which minimizes the RMSE for the final model building
@@ -157,13 +175,24 @@ b_y <- edx %>%
   group_by(year) %>%
   summarize(b_y = sum(rating - mu - b_i - b_u)/(n()+lambda))
 
-# Predict the rating for the validation set
-predicted_ratings <- validation %>%
+b_g <- edx_split %>%
   left_join(b_i, by = "movieId") %>%
   left_join(b_u, by = "userId") %>%
   left_join(b_y, by = "year") %>%
-  mutate(pred = mu + b_i + b_u + b_y)
+  group_by(genres) %>%
+  summarize(b_g = sum(rating - mu - b_i - b_u - b_y)/(n()+lambda))
 
-# Report the RMSE for our prediction for and the true values of the validation set
+# Predict the rating for the validation set
+predicted_ratings <- validation
+predicted_ratings <- predicted_ratings %>% separate_rows(genres, sep = "\\|")
+
+predicted_ratings <- predicted_ratings %>%
+  left_join(b_i, by = "movieId") %>%
+  left_join(b_u, by = "userId") %>%
+  left_join(b_y, by = "year") %>%
+  left_join(b_g, by = "genres") %>%
+  mutate(pred = mu + b_i + b_u + b_y +b_g)
+
+predicted_ratings <- predicted_ratings %>% group_by(ratingId) %>% summarize(pred = mean(pred))
+
 RMSE(predicted_ratings$pred, validation$rating)
-
