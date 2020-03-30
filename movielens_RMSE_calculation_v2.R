@@ -96,7 +96,7 @@ RMSE <- function(true_ratings, predicted_ratings){
   sqrt(mean((true_ratings - predicted_ratings)^2))
 }
 
-# Seperating the genres
+# Seperating the genres, for each genre listed in the column genres one row will be generated
 edx_split <- edx %>% separate_rows(genres, sep = "\\|")
 train_set_split <- train_set %>% separate_rows(genres, sep = "\\|")
 test_set_split <- test_set %>% separate_rows(genres, sep = "\\|")
@@ -130,6 +130,7 @@ rmses <- sapply(lambdas, function(l){
     group_by(year) %>%
     summarize(b_y = sum(rating - mu - b_i - b_u)/(n()+l))
   
+  # Genre effect including seperation - note that we are using the splitted training set
   b_g <- train_set_split %>%
     left_join(b_i, by = "movieId") %>%
     left_join(b_u, by = "userId") %>%
@@ -137,7 +138,7 @@ rmses <- sapply(lambdas, function(l){
     group_by(genres) %>%
     summarize(b_g = sum(rating - mu - b_i - b_u - b_y)/(n()+l))
   
-  # Predict the rating for the test set
+  # Predict the rating for the splitted test set, we can have more than one prediction per ratingId
   predicted_ratings <- test_set_split %>%
     left_join(b_i, by = "movieId") %>%
     left_join(b_u, by = "userId") %>%
@@ -145,9 +146,11 @@ rmses <- sapply(lambdas, function(l){
     left_join(b_g, by = "genres") %>%
     mutate(pred = mu + b_i + b_u + b_y + b_g) 
   
-  predicted_ratings <- predicted_ratings %>% group_by(ratingId) %>% summarize(pred = mean(pred))
+  # Generating the mean value for each ratingId, so we just have one prediction per ratingId
+  predicted_ratings <- predicted_ratings %>% group_by(ratingId) %>% summarize(pred = mean(pred), rating = mean(rating))
   
-  RMSE(predicted_ratings$pred, test_set$rating)
+  # Calculating the RMSE for the prediction
+  RMSE(predicted_ratings$pred, predicted_ratings$rating)
 })
 
 # Choosing the lambda which minimizes the RMSE for the final model building
@@ -175,6 +178,7 @@ b_y <- edx %>%
   group_by(year) %>%
   summarize(b_y = sum(rating - mu - b_i - b_u)/(n()+lambda))
 
+# Genre effect including seperation - note that we are using the splitted edx set
 b_g <- edx_split %>%
   left_join(b_i, by = "movieId") %>%
   left_join(b_u, by = "userId") %>%
@@ -182,10 +186,11 @@ b_g <- edx_split %>%
   group_by(genres) %>%
   summarize(b_g = sum(rating - mu - b_i - b_u - b_y)/(n()+lambda))
 
-# Predict the rating for the validation set
+# Copy the validation set and splitting the genres up
 predicted_ratings <- validation
 predicted_ratings <- predicted_ratings %>% separate_rows(genres, sep = "\\|")
 
+# Predict the rating for the copyied validation set, we can have more than one prediction per ratingId
 predicted_ratings <- predicted_ratings %>%
   left_join(b_i, by = "movieId") %>%
   left_join(b_u, by = "userId") %>%
@@ -193,6 +198,8 @@ predicted_ratings <- predicted_ratings %>%
   left_join(b_g, by = "genres") %>%
   mutate(pred = mu + b_i + b_u + b_y +b_g)
 
+# Generating the mean value for each ratingId, so we just have one prediction per ratingId
 predicted_ratings <- predicted_ratings %>% group_by(ratingId) %>% summarize(pred = mean(pred))
 
+# Calculating our final RMSE for the validation set
 RMSE(predicted_ratings$pred, validation$rating)
