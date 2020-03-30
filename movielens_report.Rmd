@@ -15,14 +15,14 @@ During this project the following steps will be conducted:
 
   1. Create/download the data
   2. Explore the data and find variables which seem useful for the model creation
-  3. Build and optimize the model with help of the parameters identified and regularization.
+  3. Build and optimize the model with help of the parameters identified and regularization
   4. Use the best model for validation and discuss the results
   5. Conclusion, limitations and comments
   
-The ambition is to get a value below 0.86490.
+The ambition is to get a RMSE value below 0.86490.
 
 ### The dataset
-The course staff provides the following code to download and manipulate the dataset, which will be used as an input for the project:
+The course staff provides the following code to download and transform the dataset, which will be used as an input for the project:
 
 ```{r get_data, message=FALSE, warning=FALSE}
 ################################
@@ -75,18 +75,18 @@ rm(dl, ratings, movies, test_index, temp, movielens, removed)
 Two datasets have been created. The edx dataset contains 9,000,055 observations, the validation set 999,999 observations.
 Each dataset contains the following variables:
 
-* **userId:** Integer variable for identifying the user for the rating
+* **userId:** Integer variable for identifying the user
 * **movieId:** Numeric unique indentifier for the movie
 * **rating:** Numeric variable from 0 to 5 in steps of 0.5 whereby 5 represents the best rating
-* **timestamp:** Integer variable giving the time of rating, which has to be translated first. Base is 1970-01-01
+* **timestamp:** Integer variable storing the time of rating, which has to be translated first. Base is 1970-01-01
 * **title:** Char, which contains the title of the movie with the release year in brackets behind
 * **genre:** Char, containing one or more genres seperated by "|"
 
 ### Manipulating the dataset before the analysis
 Before we can work with the dataset we have to perform some operations to manipulate the data but also to make computation (especially RAM usage) more efficient.
 Therefore we will transform **userId**, **movieId** and **genres** into factors instead of the afore mentioned data types.
-The timestamp will be transformed into the date. In this process we will reduce it to the year instead of a full date plus time.
-From the title column the year in which the movie has been released is extracted, put into a new column and the title is adapted accordingly. This gives us the possibility to access the this metric much more easy. Note that we do the computation on both sets, because we want the possibility to use the new created variables for the prediction later. This is not a unallowed use of the validation dataset because we are not testing our model!
+The timestamp will be transformed into a date. In this process we will reduce it to the year instead of a full date plus time.
+From the title column the year in which the movie has been released is extracted, put into a new column and the title is adapted accordingly. This gives us the possibility to access this metric much easier. Note that we do the computation on both sets, because we want the possibility to use the new created variables for the validation later. This is not an unallowed use of the validation dataset because we are not testing our model!
 
 ```{r manipulate_data, message=FALSE, warning=FALSE}
 # Factorize userId, movieId and genre
@@ -97,7 +97,7 @@ validation$userId <- as.factor(validation$userId)
 validation$movieId <- as.factor(validation$movieId)
 validation$genres <- as.factor(validation$genres)
 
-# Convert the timestamp an extracting the year of rating
+# Convert the timestamp and extracting the year of rating
 # starting at the 1st of January 1970
 edx$timestamp <- year(as.POSIXct(edx$timestamp, origin = "1970-01-01"))
 validation$timestamp <- year(as.POSIXct(validation$timestamp, origin = "1970-01-01"))
@@ -126,7 +126,7 @@ head(edx)
 ## 2. Analysing the dataset
 In this section we will have a look at the distribution of the variables and will get some insights which variables might be a good input for our model. Let's look at the distribution of the ratings. 
 
-Before we look at the ratings we summarize the ratings data for the key metrics which will help to decide which factors to test for out model.
+Before we look at the ratings we summarize the key metrics for the ratings data which will help to decide which factors to test for our model.
 ```{r summarize_ratings}
 summary(edx$rating)
 ```  
@@ -159,7 +159,7 @@ edx %>%
        x = "Average Rating for user",
        y = "Frequency")
 ```  
-Looking at the average rating users are giving, also some variance can be found although it almost looks like a bell curve. Average ratings per user seem to be to a large amount in the range of 3.0 to 4.0.
+Looking at the average rating users are giving,  some variance can be found, it almost looks like a bell curve. Average ratings per user seem to be to a large portion in the range of 3.0 to 4.0.
 
 
 We can do the same for the average rating per movie:
@@ -190,7 +190,7 @@ edx %>%
        y = "Average rating") +
  theme(axis.text.x = element_text(angle = 90, hjust = 1))
 ```
-The year in which the movie has been published seems to have a slight influence also. Newer movies (1980 and later) seem to be slightly lower rated than earlier movies, although the effect is not as strong as for the other two variables.
+The year in which the movie has been published also seems to have a slight influence. Newer movies (1980 and later) seem to be slightly lower rated than earlier movies, although the effect is not as strong as for the other two variables.
 
 How about the year of the rating? Can we see some variance here?:
 ```{r rating_per_timestamp}
@@ -204,7 +204,7 @@ edx %>%
        y = "Average rating") +
  theme(axis.text.x = element_text(angle = 90, hjust = 1))
 ```
-The year in which the rating has been done seems to have no significant effect on the rating. Except for the higher rating in 1995 all other years seem to be relatively stable around 3.5 our average value.
+The year in which the rating has been done seems to have no significant effect on the rating. Except for the higher rating in 1995 all other years seem to be relatively stable around 3.5, our average value.
 
 A bit more complicated is the examination of the genres, due to the fact, that often more than one is listed for each movie. However we can do it like that. First we split up the ratings with more than one genre:
 ```{r rating_per_genre}
@@ -216,7 +216,7 @@ We can see that we have 19 unique genres and some movies without genre:
 length(unique(temp$genres))
 ```
 
-The average rating per genre and movies per genre are the following:
+The average rating per genre and movies allocated movie per genre are as follows:
 ```{r genre_overview}
 temp %>% group_by(genres) %>% summarize(rating = mean(rating), n = n()) %>% arrange(rating)
 ```
@@ -231,10 +231,10 @@ temp %>% group_by(genres) %>% summarize(rating = mean(rating)) %>%
        y = "Average rating") +
  theme(axis.text.x = element_text(angle = 90, hjust = 1))
 ```
-The data analysis suggests, that **movieId**, **userId** and **release year** seem to have the most significant impact on the rating. In addition the more complex genres column is worth a try. For this we need to seperate the genres column into several rows and put it together after model building and estimation. More in the model building section.
+The data analysis suggests, that **movieId**, **userId** and **release year** seem to have the most significant impact on the rating. In addition the more complex genres column is worth a try. For this we need to seperate the genres column into several rows and put it together after model building and prediction More on that in the model building section.
 
 ## 3. Model building
-In this section we will follow a stepwise approach for bulding the model. For testing the results we will use the RMSE function provided in course of this lecture.
+In this section we will follow a stepwise approach for building the model. For testing the results we will use the RMSE function provided in course of this lecture.
 ```{r RMSE function}
 RMSE <- function(true_ratings, predicted_ratings){
   sqrt(mean((true_ratings - predicted_ratings)^2))
@@ -242,7 +242,7 @@ RMSE <- function(true_ratings, predicted_ratings){
 ```
 
 ### 3.1 Creating the datasets
-Defining test and train sets as well as splitting up all datasets by genres for including them into the model
+Defining test and train sets as well as splitting up all datasets by genres for including them into the model:
 ```{r create_datasets}
 # Define the index for train and test set 
 train_index <- sample(1:nrow(edx), 0.8 * nrow(edx))
@@ -305,7 +305,7 @@ result_table <- rbind(result_table,
 result_table %>% knitr::kable(caption = "RMSEs of models")
 ```
 
-We can see that we get a significant improvment over our baseline by just adding the movie effect to the model.
+We can see that we get a significant improvement over our baseline by just adding the movie effect to the model.
 
 The same can be done for the user effect:
 ```{r user_effect_model, warning=FALSE}
@@ -333,7 +333,7 @@ result_table %>% knitr::kable(caption = "RMSEs of models")
 
 Adding the user effect to the model gives a further significant improvement compared to the previous model.
 
-Our analysis showed, that the release year also could have some impact for the calculation. It's implemeted as follows:
+Our analysis showed, that the release year also could have some impact on the prediction accuracy. It's implemeted as follows:
 ```{r user_release_year_model, warning=FALSE}
 # Release year effect without regularization
 b_y <- train_set %>%
@@ -361,7 +361,7 @@ result_table %>% knitr::kable(caption = "RMSEs of models")
 
 In this case the improvement is much smaller, but considering the fact, that the overall rating for RMSE in this project is very narrowly splitted it's seems worth the implementation.
 
-Taking the genre into consideration is a bit more difficult. Herefore we need the splitted models which we created earlier. These models contain more than one row per rating if more than one genre was listed in the original dataset. With help of the splitted datasets we then calculate the genre effect and predict the ratings. Now in some cases we have more than one prediction for a certain ratingId. To make our final prediction we therefore have to take the average predicted rating per ratingId and make it our final prediction.
+Taking the genre into consideration is a bit more difficult. Herefor we need the splitted models which we created earlier. These models contain more than one row per rating if more than one genre was listed in the original dataset. With help of the splitted datasets we then calculate the genre effect and predict the ratings. Now in some cases we have more than one prediction for a certain ratingId. To make our final prediction we therefore have to take the average predicted rating per ratingId and make it our final prediction.
 ```{r user_genre_model, warning=FALSE}
 # Genre effect without regularization
 b_g <- train_set_split %>%
@@ -396,7 +396,7 @@ result_table %>% knitr::kable(caption = "RMSEs of models")
 As you can see we again improve our model, although the effort for this improvement seems very high. Nevertheless we will keep these four variables and see what improvement we can get through regularization.
 
 ### 3.3 Models with regularization
-In this section we will follow the same process as in the previous chapter but regualarize the data. We define the vector **lambdas** which contains the test values for the penalization term of the regularization:
+In this section we will follow the same process as in the previous chapter but regularize the data. We define the vector **lambdas** which contains the test values for the penalization term of the regularization:
 
 ```{r lambdas, warning=FALSE}
 # Vector for the tuning parameters
@@ -594,7 +594,7 @@ result_table %>% knitr::kable(caption = "RMSEs of models")
 The table above summarizes the results of the different models. As we can see, the best model is the one taking all four variables into consideration and regularizing all the terms. This is also the model we will now use for the validation dataset.
 
 ## 4. Results
-For validating the model we will calculate the factors on the whole edx dataset using the optimized lambda from the full dataset above. The program looks exactly the same as above, excluding the optimization loop of course.
+For validating the model we will calculate the factors on the whole edx dataset using the optimized lambda from the full model above. The program looks exactly the same as before, excluding the optimization loop of course.
 ```{r validation, warning=FALSE}
 ### Using the whole edx dataset for the building of the new model 
 ### which we will then test on the validation set
@@ -657,9 +657,9 @@ result_table %>% knitr::kable(caption = "RMSEs of models")
 
 As we can see, the model achieves our set target to get an RMSE < 0.8649, by using the optimized $\lambda$ value of `r lambda_genre`. Using the full edx dataset for a final calculation of the parameters for the optimized approach leads to an even better result on the validation set than on the test done before.
 
-The model building process in the section before shows a very consistent improvement by adding in more variables for the model bulding. The most significant improvements were made using **movieId** and **userId** and the model accuracy was raised even more useing **release year** and **genre**. The improvement achieved with these variables was much smaller.
+The model building process in the previous section shows a very consistent improvement by adding in more variables for the model bulding. The most significant improvements were made using **movieId** and **userId** and the model accuracy was raised even more using **release year** and **genre**. The improvement achieved with these variables was much smaller.
 
-Futher improvements were made by implementing regularization to the model and optimizing the penelization term. The direction of the results were consistent with the ones optained without this term. The RMSEs while using the regularization were better/lower than without.
+Futher improvements were made by implementing regularization to the model and optimizing the penelization term. The direction of the results were consistent with the ones obtained without this term. The RMSEs while using the regularization were better/lower than without.
 
 Testing the optimized model on the validation set (the model was redefined before using the whole edx dataset with the optimized lambda for the best model) brought the targeted result.
 
@@ -667,9 +667,9 @@ Testing the optimized model on the validation set (the model was redefined befor
 The model build during this project was complex in the end. Most of the complexity was added by the need to split up the genre column due to multiple assignments. Allocating every movie to just one genre would reduce the effort significantly.
 We can also see, that a majority of the accuracy can be achieved by a very small effort, the unregularized model just using the movie and user effect achieved an RMSE of `r RMSE_user` compared to the final result of **`r RMSE_validation`**. The computational effort added for this minimal improvement was huge.
 
-These methods are very basic in my point of view although they achieve an accuracy which is sufficient for maximum points on the grading scale. Trying more complex/ressource intensive (RAM) methods was unfortunately not possible. Setting up the **ratingMatrix** with the **recommenderlab package** (required 5.5 GB of RAM), but further computation was not possible due to hardware limitations. I wanted to try out matrix factorization (SVD / PCA) in order to identify patterns in movie or user groups and use them for further redefining the model. Unfortunately it was not possible.
+These methods are very basic in my point of view although they achieve an accuracy which is sufficient for maximum points on the grading scale. Trying more complex/ressource intensive (RAM) methods was unfortunately not possible. Setting up the **ratingMatrix** with the **recommenderlab package** (required 5.5 GB of RAM) worked, but further computation was not possible due to hardware limitations. I wanted to try out matrix factorization (SVD / PCA) in order to identify patterns in movie or user groups and use them for further redefining the model. Unfortunately it was not possible.
 
-First of all, I really liked the project and the challenges that came with it. Going step by step through some of the things learned during the pervious courses and applying them by trial and error was really fun. Maybe it would be better to just use the 1 Mio. dataset for this project and set the bar higher in terms of grading, making it possible and mandatory to implement more advanced methods. It's a real shame that I could dig in deeper when the best part was about to come due to the afore mentioned limitations.
+First of all, I really liked the project and the challenges that came with it. Going step by step through some of the things learned during the pervious courses and applying them by trial and error was really fun. Maybe it would be better to just use the 1 Mio. dataset for this project and set the bar higher in terms of grading, making it possible and mandatory to implement more advanced methods. It's a real shame that I couldn't dig in deeper when the best part was about to come due to the afore mentioned limitations.
 
 Hope you enjoyed the project and this report as well and maybe got some new insights you can use in the future.
 You can find the data **[here](https://https://github.com/bretti93/MovieLens)**
