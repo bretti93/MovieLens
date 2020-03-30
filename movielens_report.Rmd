@@ -16,7 +16,7 @@ During this project the following steps will be conducted:
   1. Create/download the data
   2. Explore the data and find variables which seem useful for the model creation
   3. Build and optimize the model with help of the parameters identified and regularization.
-  4.Use the best model for validation and discuss the results
+  4. Use the best model for validation and discuss the results
   5. Conclusion, limitations and comments
   
 The ambition is to get a value below 0.86490.
@@ -74,6 +74,7 @@ rm(dl, ratings, movies, test_index, temp, movielens, removed)
 
 Two datasets have been created. The edx dataset contains 9,000,055 observations, the validation set 999,999 observations.
 Each dataset contains the following variables:
+
 * **userId:** Integer variable for identifying the user for the rating
 * **movieId:** Numeric unique indentifier for the movie
 * **rating:** Numeric variable from 0 to 5 in steps of 0.5 whereby 5 represents the best rating
@@ -664,10 +665,11 @@ Testing the optimized model on the validation set (the model was redefined befor
 
 ## 5. Conclusion, limitations and comments
 The model build during this project was complex in the end. Most of the complexity was added by the need to split up the genre column due to multiple assignments. Allocating every movie to just one genre would reduce the effort significantly.
-We can also see, that a majority of the accuracy can be achieved by a very small effort, the unregularized model just using the movie and user effect achieved an RMSE of `r RMSE_user` compared to the final result of `r RMSE_validation`. The computational effort added for this minimal improvement was huge.
+We can also see, that a majority of the accuracy can be achieved by a very small effort, the unregularized model just using the movie and user effect achieved an RMSE of `r RMSE_user` compared to the final result of **`r RMSE_validation`**. The computational effort added for this minimal improvement was huge.
 
 These methods are very basic in my point of view although they achieve an accuracy which is sufficient for maximum points on the grading scale. Trying more complex/ressource intensive (RAM) methods was unfortunately not possible. Setting up the **ratingMatrix** with the **recommenderlab package** (required 5.5 GB of RAM), but further computation was not possible due to hardware limitations. I wanted to try out matrix factorization (SVD / PCA) in order to identify patterns in movie or user groups and use them for further redefining the model. Unfortunately it was not possible.
 
 First of all, I really liked the project and the challenges that came with it. Going step by step through some of the things learned during the pervious courses and applying them by trial and error was really fun. Maybe it would be better to just use the 1 Mio. dataset for this project and set the bar higher in terms of grading, making it possible and mandatory to implement more advanced methods. It's a real shame that I could dig in deeper when the best part was about to come due to the afore mentioned limitations.
 
 Hope you enjoyed the project and this report as well and maybe got some new insights you can use in the future.
+You can find the data **[here](https://https://github.com/bretti93/MovieLens)**
